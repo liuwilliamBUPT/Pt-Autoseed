@@ -1,11 +1,9 @@
-# ！/usr/bin/python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
 import re
-
-import requests
 
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean
@@ -30,7 +28,7 @@ ask_dict = {
 
 class TJUPT(NexusPHP):
     url_host = "https://tjupt.org"
-    db_column = "pttrackertju.tjupt.org"
+    db_column = "pttracker6.tjupt.org"
 
     def __init__(self, status, cookies, passkey, **kwargs):
         # Site Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
@@ -39,13 +37,8 @@ class TJUPT(NexusPHP):
         super().__init__(status, cookies, passkey, **kwargs)
 
     def exist_torrent_title(self, tag):
-        torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
-        if re.search("你没有该权限！", torrent_file_page.text):
-            torrent_page = self.page_torrent_detail(tid=tag, bs=True)
-            torrent_title = re.search("\[TJUPT\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
-        else:  # Due to HIGH Authority (Ultimate User) asked to view this page.
-            torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
-            torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+        torrent_page = self.page_torrent_detail(tid=tag, bs=True)
+        torrent_title = re.search("\[TJUPT\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
         Logger.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
@@ -68,11 +61,6 @@ class TJUPT(NexusPHP):
             raw_descr = ubb_clean(page_clone.find("textarea", id="descr").text)
             url = page_clone.find("input", attrs={"name": "url"})
             res_dic.update({"clone_id": tid, "type": type_value, "descr": raw_descr, "url": url["value"]})
-
-            for name in ["source_sel", "team_sel"]:
-                tag = page_clone.find("select", attrs={"name": name})
-                tag_selected = tag.find("option", selected=True)
-                res_dic.update({name: tag_selected["value"]})
 
             # Get torrent_info page and sort this page's information into the pre-reseed dict.
             catdetail_page = self.get_data(url=self.url_host + "/catdetail_edittorrents.php", params={"torid": tid},
@@ -122,8 +110,6 @@ class TJUPT(NexusPHP):
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("descr", raw_info["descr"]),  # 简介*
             ("getDescByTorrentId", ""),
-            ("source_sel", raw_info["source_sel"]),  # 质量
-            ("team_sel", raw_info["team_sel"]),  # 内容
             ("visible", self._TORRENT_VISIBLE),
             ("uplver", self._UPLVER),
         ]
